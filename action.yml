@@ -33,13 +33,16 @@ runs:
 
         if [ "${KUBEASY_VERSION}" = "latest" ]; then
           echo "Installing latest version of kubeasy CLI..."
-          INSTALL_URL="https://download.kubeasy.dev/install.sh"
+          # Do NOT pass KUBEASY_VERSION to install.sh — let it resolve the
+          # latest version itself via the /latest endpoint. Passing "latest"
+          # as a version string causes the script to construct an invalid URL.
+          curl -fsSL "https://download.kubeasy.dev/install.sh" \
+            | KUBEASY_INSTALL_DIR=/usr/local/bin sh
         else
           echo "Installing kubeasy CLI ${KUBEASY_VERSION}..."
-          INSTALL_URL="https://download.kubeasy.dev/kubeasy-cli/${KUBEASY_VERSION}/install.sh"
+          curl -fsSL "https://download.kubeasy.dev/kubeasy-cli/${KUBEASY_VERSION}/install.sh" \
+            | KUBEASY_VERSION="${KUBEASY_VERSION}" KUBEASY_INSTALL_DIR=/usr/local/bin sh
         fi
-
-        curl -fsSL "${INSTALL_URL}" | KUBEASY_INSTALL_DIR=/usr/local/bin sh
 
         INSTALLED_VERSION="$(kubeasy version 2>/dev/null || kubeasy --version 2>/dev/null || echo 'unknown')"
         echo "version=${INSTALLED_VERSION}" >> "$GITHUB_OUTPUT"
