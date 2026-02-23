@@ -33,18 +33,19 @@ runs:
 
         if [ "${KUBEASY_VERSION}" = "latest" ]; then
           echo "Installing latest version of kubeasy CLI..."
-          # Do NOT pass KUBEASY_VERSION to install.sh — let it resolve the
-          # latest version itself via the /latest endpoint. Passing "latest"
-          # as a version string causes the script to construct an invalid URL.
+          # Unset KUBEASY_VERSION so install.sh resolves the latest version
+          # itself via the /latest endpoint instead of using "latest" literally.
           curl -fsSL "https://download.kubeasy.dev/install.sh" \
-            | KUBEASY_INSTALL_DIR=/usr/local/bin sh
+            | env -u KUBEASY_VERSION KUBEASY_INSTALL_DIR=/usr/local/bin sh
         else
           echo "Installing kubeasy CLI ${KUBEASY_VERSION}..."
           curl -fsSL "https://download.kubeasy.dev/kubeasy-cli/${KUBEASY_VERSION}/install.sh" \
             | KUBEASY_VERSION="${KUBEASY_VERSION}" KUBEASY_INSTALL_DIR=/usr/local/bin sh
         fi
 
-        INSTALLED_VERSION="$(kubeasy version 2>/dev/null || kubeasy --version 2>/dev/null || echo 'unknown')"
+        # kubeasy version outputs multiple lines; grab only the first to avoid
+        # the "Invalid format" error when writing to $GITHUB_OUTPUT.
+        INSTALLED_VERSION="$(kubeasy version 2>/dev/null | head -1 || kubeasy --version 2>/dev/null | head -1 || echo 'unknown')"
         echo "version=${INSTALLED_VERSION}" >> "$GITHUB_OUTPUT"
         echo "kubeasy CLI installed: ${INSTALLED_VERSION}"
         echo "::endgroup::"
