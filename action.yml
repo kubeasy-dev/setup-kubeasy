@@ -43,9 +43,12 @@ runs:
             | KUBEASY_VERSION="${KUBEASY_VERSION}" KUBEASY_INSTALL_DIR=/usr/local/bin sh
         fi
 
-        # kubeasy version outputs multiple lines; grab only the first to avoid
-        # the "Invalid format" error when writing to $GITHUB_OUTPUT.
-        INSTALLED_VERSION="$(kubeasy version 2>/dev/null | head -1 || kubeasy --version 2>/dev/null | head -1 || echo 'unknown')"
+        # Capture version without a live pipe to avoid SIGPIPE with pipefail:
+        # `head -1` on a live process would cause kubeasy to exit with 141,
+        # triggering the `|| echo 'unknown'` fallback and producing a
+        # multi-line value that fails the GITHUB_OUTPUT "Invalid format" check.
+        RAW_VERSION="$(kubeasy version 2>/dev/null || kubeasy --version 2>/dev/null || echo 'unknown')"
+        INSTALLED_VERSION="$(echo "$RAW_VERSION" | head -1)"
         echo "version=${INSTALLED_VERSION}" >> "$GITHUB_OUTPUT"
         echo "kubeasy CLI installed: ${INSTALLED_VERSION}"
         echo "::endgroup::"
